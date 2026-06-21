@@ -1,0 +1,26 @@
+/* Global styles */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #0a1626;
+  color: #e8f0fb;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Mapbox control tweaks to match the dark theme */
+.mapboxgl-ctrl-group {
+  background: rgba(13, 24, 40, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.mapboxgl-ctrl-icon {
+  filter: invert(1);
+}

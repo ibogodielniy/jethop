@@ -1,0 +1,130 @@
+<div class="map" #mapEl></div>
+
+<!-- Search + results overlay panel -->
+<section class="panel">
+  <header class="panel__head">
+    <h1>JetHop</h1>
+    <p>Plan multi-leg flight routes on the map.</p>
+  </header>
+
+  <div class="search">
+    <div class="field">
+      <label>From</label>
+      <input
+        type="text"
+        placeholder="City or airport code"
+        [(ngModel)]="originQuery"
+        (input)="onSearchInput('origin')"
+        (focus)="onSearchInput('origin')"
+        autocomplete="off"
+      />
+      <ul class="suggest" *ngIf="activeField === 'origin' && suggestions.length">
+        <li *ngFor="let a of suggestions" (mousedown)="selectSuggestion(a)">
+          <span class="code">{{ a.code }}</span>
+          <span class="meta">{{ a.city }}, {{ a.country }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <button class="swap" type="button" title="Swap" (click)="swap()">⇅</button>
+
+    <div class="field">
+      <label>To</label>
+      <input
+        type="text"
+        placeholder="City or airport code"
+        [(ngModel)]="destQuery"
+        (input)="onSearchInput('destination')"
+        (focus)="onSearchInput('destination')"
+        autocomplete="off"
+      />
+      <ul class="suggest" *ngIf="activeField === 'destination' && suggestions.length">
+        <li *ngFor="let a of suggestions" (mousedown)="selectSuggestion(a)">
+          <span class="code">{{ a.code }}</span>
+          <span class="meta">{{ a.city }}, {{ a.country }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="controls">
+      <label class="layovers">
+        Max layovers
+        <select [(ngModel)]="maxLayovers">
+          <option [ngValue]="1">1</option>
+          <option [ngValue]="2">2</option>
+          <option [ngValue]="3">3</option>
+        </select>
+      </label>
+      <button class="find" type="button" (click)="search()" [disabled]="!origin || !destination">
+        Find routes
+      </button>
+      <button class="ghost" type="button" (click)="reset()">Reset</button>
+    </div>
+    <p class="hint">Tip: you can also click airports on the map to set From / To.</p>
+  </div>
+
+  <!-- Results -->
+  <div class="results" *ngIf="searched">
+    <div class="results__head" *ngIf="routes.length">
+      {{ routes.length }} route<span *ngIf="routes.length !== 1">s</span> found
+    </div>
+    <p class="empty" *ngIf="!routes.length">
+      No routes within {{ maxLayovers }} layover<span *ngIf="maxLayovers !== 1">s</span>. Try
+      increasing the layover limit.
+    </p>
+
+    <ul class="route-list">
+      <li
+        *ngFor="let r of routes; trackBy: trackByRoute"
+        class="route-card"
+        [class.active]="r === selected"
+        (click)="selectRoute(r)"
+      >
+        <div class="route-card__top">
+          <span class="path">{{ routePath(r) }}</span>
+          <span class="badge">{{ r.layovers }} stop{{ r.layovers === 1 ? '' : 's' }}</span>
+        </div>
+        <div class="route-card__stats">
+          <span><strong>{{ fmtDur(r.totalMin) }}</strong> total</span>
+          <span>{{ fmtDur(r.flightMin) }} flying</span>
+          <span>{{ r.distanceKm | number }} km</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Selected route detail -->
+  <div class="detail" *ngIf="selected">
+    <div class="detail__summary">
+      <div>
+        <span class="big">{{ fmtDur(selected.totalMin) }}</span>
+        <span class="sub">total trip</span>
+      </div>
+      <div>
+        <span class="big">{{ selected.layovers }}</span>
+        <span class="sub">layover{{ selected.layovers === 1 ? '' : 's' }}</span>
+      </div>
+      <div>
+        <span class="big">{{ fmtDur(selected.layoverMin) }}</span>
+        <span class="sub">on ground</span>
+      </div>
+    </div>
+
+    <ol class="legs">
+      <li *ngFor="let leg of selected.legs; let i = index" class="leg">
+        <div class="leg__time">
+          <span>{{ fmtTime(leg.departure) }}</span>
+          <span class="arrow">→</span>
+          <span>{{ fmtTime(leg.arrival) }}</span>
+        </div>
+        <div class="leg__route">
+          <strong>{{ leg.from.code }} → {{ leg.to.code }}</strong>
+          <span class="leg__meta">
+            {{ leg.airline }} {{ leg.flightNo }} · {{ fmtDur(leg.durationMin) }} ·
+            {{ leg.distanceKm | number }} km
+          </span>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
