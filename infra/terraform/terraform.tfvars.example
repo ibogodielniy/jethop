@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars and adjust.
+# bucket_name must be globally unique across all of AWS S3.
+
+bucket_name = "jethop-app-site"
+domain      = "jethop.app"
+www_domain  = "www.jethop.app"
+
+# tags = {
+#   Environment = "production"
+# }

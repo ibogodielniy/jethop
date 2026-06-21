@@ -43,3 +43,11 @@ Thumbs.db
 
 # Local secrets (Mapbox token)
 /src/environments/mapbox-token.ts
+
+# Terraform (keep .terraform.lock.hcl tracked for reproducible provider versions)
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
