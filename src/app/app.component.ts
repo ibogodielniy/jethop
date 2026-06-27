@@ -29,6 +29,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private map!: mapboxgl.Map;
   private mapReady = false;
 
+  // map view: globe (planet) vs flat mercator
+  isGlobe = true;
+
   // search state
   originQuery = '';
   destQuery = '';
@@ -58,7 +61,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
     this.map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
     this.map.on('style.load', () => {
-      this.map.setFog({});
+      // Light, non-glowing sky: a single light tone for haze, atmosphere and space,
+      // with a near-flat horizon so the globe has no luminous atmospheric halo.
+      this.map.setFog({
+        color: 'rgb(234, 242, 250)',        // lower atmosphere haze at the horizon
+        'high-color': 'rgb(234, 242, 250)', // match space -> no glowing rim
+        'space-color': 'rgb(234, 242, 250)',// the space/sky behind the globe
+        'horizon-blend': 0.02,              // flat horizon, no atmospheric glow
+        'star-intensity': 0.0,
+      });
       this.addAirportLayers();
       this.addRouteLayers();
       this.mapReady = true;
@@ -67,6 +78,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.map?.remove();
+  }
+
+  toggleProjection(): void {
+    if (!this.map) return;
+    this.isGlobe = !this.isGlobe;
+    this.map.setProjection(this.isGlobe ? 'globe' : 'mercator');
   }
 
   private addAirportLayers(): void {
@@ -87,9 +104,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       source: 'airports',
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 2.2, 6, 5],
-        'circle-color': '#5fb0ff',
-        'circle-opacity': 0.7,
-        'circle-stroke-color': '#0a1626',
+        'circle-color': '#1f6fb2',
+        'circle-opacity': 0.85,
+        'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 1,
       },
     });
@@ -105,9 +122,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         'text-allow-overlap': false,
       },
       paint: {
-        'text-color': '#cfe3ff',
-        'text-halo-color': '#08111f',
-        'text-halo-width': 1.2,
+        'text-color': '#1b3a5b',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.4,
       },
     });
 
@@ -129,7 +146,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       source: 'route',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': '#ffb454',
+        'line-color': '#fb8500',
         'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1.8, 6, 3.5],
         'line-opacity': 0.95,
       },
@@ -140,8 +157,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       source: 'route-stops',
       paint: {
         'circle-radius': 6,
-        'circle-color': '#fff',
-        'circle-stroke-color': '#ffb454',
+        'circle-color': '#fb8500',
+        'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 3,
       },
     });
@@ -156,8 +173,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
       },
       paint: {
-        'text-color': '#ffffff',
-        'text-halo-color': '#1a1206',
+        'text-color': '#7a3300',
+        'text-halo-color': '#ffffff',
         'text-halo-width': 1.6,
       },
     });

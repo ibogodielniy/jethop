@@ -4,5 +4,5 @@ export const environment = {
   production: false,
   // Loaded from the gitignored ./mapbox-token.ts (copy mapbox-token.example.ts).
   mapboxToken: MAPBOX_TOKEN,
-  mapStyle: 'mapbox://styles/mapbox/dark-v11',
+  mapStyle: 'mapbox://styles/mapbox/light-v11',
 };

@@ -16,6 +16,35 @@
   background: var(--bg);
 }
 
+.proj-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 6;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+  }
+  svg {
+    display: block;
+  }
+}
+
 .panel {
   position: fixed;
   top: 18px;

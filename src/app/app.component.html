@@ -1,5 +1,29 @@
 <div class="map" #mapEl></div>
 
+<!-- Projection toggle: globe (planet) <-> flat map -->
+<button
+  class="proj-toggle"
+  type="button"
+  (click)="toggleProjection()"
+  [title]="isGlobe ? 'Switch to flat map view' : 'Switch to globe view'"
+  [attr.aria-label]="isGlobe ? 'Switch to flat map view' : 'Switch to globe view'"
+>
+  <!-- on the globe: show a map icon (action = go flat) -->
+  <svg *ngIf="isGlobe" viewBox="0 0 24 24" width="20" height="20" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="3 6 9 4 15 6 21 4 21 18 15 20 9 18 3 20 3 6"></polygon>
+    <line x1="9" y1="4" x2="9" y2="18"></line>
+    <line x1="15" y1="6" x2="15" y2="20"></line>
+  </svg>
+  <!-- on the flat map: show a globe icon (action = go planet) -->
+  <svg *ngIf="!isGlobe" viewBox="0 0 24 24" width="20" height="20" fill="none"
+    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="2" y1="12" x2="22" y2="12"></line>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+  </svg>
+</button>
+
 <!-- Search + results overlay panel -->
 <section class="panel">
   <header class="panel__head">
