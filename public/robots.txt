@@ -1,0 +1,5 @@
+# https://jethop.app — allow all crawlers, point them at the sitemap.
+User-agent: *
+Allow: /
+
+Sitemap: https://jethop.app/sitemap.xml
