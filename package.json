@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "gen:favicon": "node scripts/gen-favicon.mjs"
   },
   "private": true,
   "dependencies": {
@@ -27,6 +28,7 @@
     "@angular-devkit/build-angular": "^19.1.2",
     "@angular/cli": "^19.1.2",
     "@angular/compiler-cli": "^19.1.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/geojson": "^7946.0.16",
     "@types/jasmine": "~5.1.0",
     "jasmine-core": "~5.5.0",
@@ -35,6 +37,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "png-to-ico": "^3.0.1",
     "typescript": "~5.7.2"
   }
 }
