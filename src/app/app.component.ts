@@ -180,11 +180,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       paint: {
         // per-connection colour (chosen = orange, alternatives = palette)
         'line-color': ['coalesce', ['get', 'color'], '#fb8500'],
-        // chosen route drawn thicker via widthMul
+        // chosen route drawn thicker via widthMul. NB: the zoom interpolate must
+        // stay top-level (Mapbox forbids nesting it), so widthMul is applied in
+        // the output stops, not by wrapping the interpolate in a multiply.
         'line-width': [
-          '*',
-          ['interpolate', ['linear'], ['zoom'], 1, 1.8, 6, 3.5],
-          ['coalesce', ['get', 'widthMul'], 1],
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          1,
+          ['*', 1.8, ['coalesce', ['get', 'widthMul'], 1]],
+          6,
+          ['*', 3.5, ['coalesce', ['get', 'widthMul'], 1]],
         ],
         // opacity carries score: chosen solid, alternatives fade as score drops
         'line-opacity': ['coalesce', ['get', 'opacity'], 0.95],
