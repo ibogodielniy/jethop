@@ -87,68 +87,37 @@
     <p class="hint">Tip: you can also click airports on the map to set From / To.</p>
   </div>
 
-  <!-- Results -->
+  <!-- Connections (ranked by reasonability; opacity on the map = reasonability) -->
   <div class="results" *ngIf="searched">
-    <div class="results__head" *ngIf="routes.length">
-      {{ routes.length }} route<span *ngIf="routes.length !== 1">s</span> found
+    <div class="results__head" *ngIf="connections.length">
+      {{ connections.length }} connection<span *ngIf="connections.length !== 1">s</span> ·
+      opacity = reasonability
     </div>
-    <p class="empty" *ngIf="!routes.length">
-      No routes within {{ maxLayovers }} layover<span *ngIf="maxLayovers !== 1">s</span>. Try
-      increasing the layover limit.
+    <p class="empty" *ngIf="loading">Finding connections…</p>
+    <p class="empty" *ngIf="error">{{ error }}</p>
+    <p class="empty" *ngIf="!loading && !error && !connections.length">
+      No connections within {{ maxLayovers }} stop<span *ngIf="maxLayovers !== 1">s</span>.
     </p>
 
     <ul class="route-list">
       <li
-        *ngFor="let r of routes; trackBy: trackByRoute"
+        *ngFor="let c of connections; let i = index"
         class="route-card"
-        [class.active]="r === selected"
-        (click)="selectRoute(r)"
+        [class.active]="i === 0"
       >
         <div class="route-card__top">
-          <span class="path">{{ routePath(r) }}</span>
-          <span class="badge">{{ r.layovers }} stop{{ r.layovers === 1 ? '' : 's' }}</span>
+          <span class="path">{{ connPath(c) }}</span>
+          <span class="badge">{{ c.stops }} stop{{ c.stops === 1 ? '' : 's' }}</span>
         </div>
         <div class="route-card__stats">
-          <span><strong>{{ fmtDur(r.totalMin) }}</strong> total</span>
-          <span>{{ fmtDur(r.flightMin) }} flying</span>
-          <span>{{ r.distanceKm | number }} km</span>
+          <span><strong>{{ c.totalDistanceKm | number }}</strong> km</span>
+          <span *ngIf="c.legs.length">{{ c.legs[0].airline }}<span *ngIf="c.stops"> +{{ c.stops }}</span></span>
+          <span>×{{ c.detourRatio | number: '1.1-1' }} detour</span>
+        </div>
+        <div class="reason" [title]="'reasonability ' + (c.reasonability | number: '1.2-2')">
+          <span class="reason__bar" [style.width.%]="c.reasonability * 100"></span>
         </div>
       </li>
     </ul>
-  </div>
-
-  <!-- Selected route detail -->
-  <div class="detail" *ngIf="selected">
-    <div class="detail__summary">
-      <div>
-        <span class="big">{{ fmtDur(selected.totalMin) }}</span>
-        <span class="sub">total trip</span>
-      </div>
-      <div>
-        <span class="big">{{ selected.layovers }}</span>
-        <span class="sub">layover{{ selected.layovers === 1 ? '' : 's' }}</span>
-      </div>
-      <div>
-        <span class="big">{{ fmtDur(selected.layoverMin) }}</span>
-        <span class="sub">on ground</span>
-      </div>
-    </div>
-
-    <ol class="legs">
-      <li *ngFor="let leg of selected.legs; let i = index" class="leg">
-        <div class="leg__time">
-          <span>{{ fmtTime(leg.departure) }}</span>
-          <span class="arrow">→</span>
-          <span>{{ fmtTime(leg.arrival) }}</span>
-        </div>
-        <div class="leg__route">
-          <strong>{{ leg.from.code }} → {{ leg.to.code }}</strong>
-          <span class="leg__meta">
-            {{ leg.airline }} {{ leg.flightNo }} · {{ fmtDur(leg.durationMin) }} ·
-            {{ leg.distanceKm | number }} km
-          </span>
-        </div>
-      </li>
-    </ol>
   </div>
 </section>

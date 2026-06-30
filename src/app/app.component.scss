@@ -304,6 +304,20 @@ button.ghost {
   }
 }
 
+.reason {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.reason__bar {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
 /* ---- Selected detail ---- */
 .detail {
   border-top: 1px solid var(--line);

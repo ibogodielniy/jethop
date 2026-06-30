@@ -12,6 +12,7 @@ import { environment } from '../environments/environment';
 import { AIRPORTS } from './data/airports';
 import { Airport, RoutePlan } from './models';
 import { RouteEngineService } from './services/route-engine.service';
+import { ConnectionsService, ApiConnection } from './services/connections.service';
 import { greatCircle } from './services/geo';
 
 type Field = 'origin' | 'destination';
@@ -46,7 +47,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   selected: RoutePlan | null = null;
   searched = false;
 
-  constructor(private engine: RouteEngineService) {}
+  // API connections (ranked by reasonability)
+  connections: ApiConnection[] = [];
+  loading = false;
+  error = '';
+
+  constructor(
+    private engine: RouteEngineService,
+    private connSvc: ConnectionsService,
+  ) {}
 
   // ---- Map lifecycle ----------------------------------------------------
   ngAfterViewInit(): void {
@@ -148,7 +157,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       paint: {
         'line-color': '#fb8500',
         'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1.8, 6, 3.5],
-        'line-opacity': 0.95,
+        // opacity carries reasonability: most reasonable solid, least transparent
+        'line-opacity': ['coalesce', ['get', 'opacity'], 0.95],
       },
     });
     this.map.addLayer({
@@ -160,6 +170,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         'circle-color': '#fb8500',
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 3,
+        'circle-opacity': ['coalesce', ['get', 'opacity'], 1],
+        'circle-stroke-opacity': ['coalesce', ['get', 'opacity'], 1],
       },
     });
     this.map.addLayer({
@@ -229,18 +241,103 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     [this.originQuery, this.destQuery] = [this.destQuery, this.originQuery];
   }
 
-  search(): void {
+  async search(): Promise<void> {
     if (!this.origin || !this.destination) return;
-    this.routes = this.engine.findRoutes(this.origin.code, this.destination.code, this.maxLayovers);
     this.searched = true;
-    this.selected = this.routes[0] ?? null;
-    if (this.selected) this.drawRoute(this.selected);
-    else this.clearRoute();
+    this.loading = true;
+    this.error = '';
+    try {
+      this.connections = await this.connSvc.getConnections(
+        this.origin.code,
+        this.destination.code,
+        this.maxLayovers,
+        10,
+      );
+      this.drawConnections();
+    } catch (e) {
+      this.error = 'Could not reach the connections API.';
+      this.connections = [];
+      this.clearRoute();
+      console.warn('connections fetch failed', e);
+    } finally {
+      this.loading = false;
+    }
   }
 
   selectRoute(plan: RoutePlan): void {
     this.selected = plan;
     this.drawRoute(plan);
+  }
+
+  /** Draw every returned connection, opacity scaled to its reasonability. */
+  private drawConnections(): void {
+    if (!this.mapReady) return;
+    if (!this.connections.length) {
+      this.clearRoute();
+      return;
+    }
+
+    const rs = this.connections.map((c) => c.reasonability);
+    const min = Math.min(...rs);
+    const max = Math.max(...rs);
+    const opacityOf = (r: number) => (max > min ? 0.18 + 0.77 * ((r - min) / (max - min)) : 0.95);
+
+    // Ascending reasonability so the most reasonable (solid) renders on top.
+    const sorted = [...this.connections].sort((a, b) => a.reasonability - b.reasonability);
+
+    const lineFeatures: GeoJSON.Feature[] = [];
+    const stops = new Map<string, { lon: number; lat: number; op: number }>();
+
+    for (const c of sorted) {
+      const op = opacityOf(c.reasonability);
+      for (const leg of c.legs) {
+        lineFeatures.push({
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: greatCircle(
+              { lat: leg.fromLat, lon: leg.fromLon },
+              { lat: leg.toLat, lon: leg.toLon },
+            ),
+          },
+          properties: { opacity: op },
+        });
+        for (const p of [
+          { code: leg.fromIata, lat: leg.fromLat, lon: leg.fromLon },
+          { code: leg.toIata, lat: leg.toLat, lon: leg.toLon },
+        ]) {
+          const ex = stops.get(p.code);
+          if (!ex || op > ex.op) stops.set(p.code, { lon: p.lon, lat: p.lat, op });
+        }
+      }
+    }
+
+    (this.map.getSource('route') as mapboxgl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: lineFeatures,
+    });
+    (this.map.getSource('route-stops') as mapboxgl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: [...stops.entries()].map(([code, v]) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [v.lon, v.lat] },
+        properties: { code, opacity: Math.max(v.op, 0.6) },
+      })),
+    });
+
+    const bounds = new mapboxgl.LngLatBounds();
+    for (const f of lineFeatures)
+      for (const co of (f.geometry as GeoJSON.LineString).coordinates)
+        bounds.extend(co as [number, number]);
+    if (!bounds.isEmpty())
+      this.map.fitBounds(bounds, {
+        padding: { top: 90, bottom: 90, left: 430, right: 90 },
+        duration: 900,
+      });
+  }
+
+  connPath(c: ApiConnection): string {
+    return [c.legs[0]?.fromIata, ...c.legs.map((l) => l.toIata)].join(' → ');
   }
 
   // ---- Map drawing ------------------------------------------------------
@@ -280,6 +377,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.originQuery = this.destQuery = '';
     this.routes = [];
     this.selected = null;
+    this.connections = [];
+    this.error = '';
     this.searched = false;
     this.suggestions = [];
     this.clearRoute();

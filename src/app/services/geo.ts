@@ -1,11 +1,11 @@
-import { Airport } from '../models';
+export type LatLon = { lat: number; lon: number };
 
 const R_KM = 6371;
 const toRad = (d: number) => (d * Math.PI) / 180;
 const toDeg = (r: number) => (r * 180) / Math.PI;
 
-/** Great-circle distance in km between two airports. */
-export function haversineKm(a: Airport, b: Airport): number {
+/** Great-circle distance in km between two points. */
+export function haversineKm(a: LatLon, b: LatLon): number {
   const dLat = toRad(b.lat - a.lat);
   const dLon = toRad(b.lon - a.lon);
   const lat1 = toRad(a.lat);
@@ -20,7 +20,7 @@ export function haversineKm(a: Airport, b: Airport): number {
  * Interpolated great-circle path as [lon, lat] coordinates for GeoJSON.
  * Longitudes are unwrapped so the line does not jump across the antimeridian.
  */
-export function greatCircle(a: Airport, b: Airport, steps = 64): [number, number][] {
+export function greatCircle(a: LatLon, b: LatLon, steps = 64): [number, number][] {
   const lat1 = toRad(a.lat);
   const lon1 = toRad(a.lon);
   const lat2 = toRad(b.lat);
