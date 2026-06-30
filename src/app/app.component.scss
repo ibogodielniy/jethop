@@ -79,6 +79,33 @@
   }
 }
 
+.legend {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend .dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+.legend .dot.intl {
+  width: 11px;
+  height: 11px;
+  background: #1d6fb8;
+}
+.legend .dot.regional {
+  background: #9bb0c4;
+}
+
 /* ---- Search ---- */
 .search {
   display: flex;

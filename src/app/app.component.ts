@@ -115,7 +115,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       features: this.airports.map((a) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [a.lon, a.lat] },
-        properties: { code: a.code, city: a.city },
+        properties: { code: a.code, city: a.city, scope: a.scope ?? 'regional' },
       })),
     });
   }
@@ -127,9 +127,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       type: 'circle',
       source: 'airports',
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, 2.2, 6, 5],
-        'circle-color': '#1f6fb2',
-        'circle-opacity': 0.85,
+        // international airports read larger; regional smaller
+        'circle-radius': [
+          'interpolate', ['linear'], ['zoom'],
+          1, ['match', ['get', 'scope'], 'international', 2.8, 1.8],
+          6, ['match', ['get', 'scope'], 'international', 6, 4],
+        ],
+        // international = strong blue, regional = muted slate
+        'circle-color': ['match', ['get', 'scope'], 'international', '#1d6fb8', '#9bb0c4'],
+        'circle-opacity': ['match', ['get', 'scope'], 'international', 0.9, 0.7],
         'circle-stroke-color': '#ffffff',
         'circle-stroke-width': 1,
       },

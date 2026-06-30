@@ -5,6 +5,8 @@ export interface Airport {
   country: string;
   lat: number;
   lon: number;
+  scope?: 'international' | 'regional' | string; // observed scope
+  countriesServed?: number;
 }
 
 /** A possible network connection between two airports (route network layer). */

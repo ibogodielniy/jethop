@@ -15,6 +15,8 @@ export class AirportsService {
       country?: string;
       latitude: number;
       longitude: number;
+      scope?: string;
+      countriesServed?: number;
     }>;
     return data
       .filter((a) => a.iata && a.latitude != null && a.longitude != null)
@@ -25,6 +27,8 @@ export class AirportsService {
         country: a.country ?? '',
         lat: a.latitude,
         lon: a.longitude,
+        scope: a.scope ?? 'regional',
+        countriesServed: a.countriesServed ?? 0,
       }));
   }
 }
