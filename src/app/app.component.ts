@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import mapboxgl from 'mapbox-gl';
 import { environment } from '../environments/environment';
 import { Airport, RoutePlan } from './models';
-import { ConnectionsService, ApiConnection } from './services/connections.service';
+import { ConnectionsService, ApiConnection, DirectFlight } from './services/connections.service';
 import { AirportsService } from './services/airports.service';
 import { greatCircle } from './services/geo';
 
@@ -49,8 +49,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   selected: RoutePlan | null = null;
   searched = false;
 
-  // API connections (ranked by reasonability)
-  connections: ApiConnection[] = [];
+  // API results
+  connections: ApiConnection[] = []; // two airports: ranked connections
+  directs: DirectFlight[] = []; // one airport: direct flights out
+  mode: 'none' | 'direct' | 'connections' = 'none';
   loading = false;
   error = '';
 
@@ -241,6 +243,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
     this.suggestions = [];
     this.activeField = null;
+    void this.refreshSelection();
   }
 
   private pickFromMap(a: Airport): void {
@@ -251,45 +254,132 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.destination = a;
       this.destQuery = `${a.code} — ${a.city}`;
     } else {
-      // restart selection
+      // third click: restart with the clicked airport as the new origin
       this.origin = a;
       this.originQuery = `${a.code} — ${a.city}`;
       this.destination = null;
       this.destQuery = '';
     }
+    void this.refreshSelection();
   }
 
   swap(): void {
     [this.origin, this.destination] = [this.destination, this.origin];
     [this.originQuery, this.destQuery] = [this.destQuery, this.originQuery];
+    void this.refreshSelection();
   }
 
-  async search(): Promise<void> {
-    if (!this.origin || !this.destination) return;
-    this.searched = true;
-    this.loading = true;
+  // Find button just re-runs whatever the current selection implies.
+  search(): void {
+    void this.refreshSelection();
+  }
+
+  /**
+   * Decide what to show from the current selection:
+   *  - two airports -> ranked reasonable connections
+   *  - one airport  -> all direct flights out of it
+   *  - none         -> clear
+   */
+  private async refreshSelection(): Promise<void> {
     this.error = '';
-    try {
-      this.connections = await this.connSvc.getConnections(
-        this.origin.code,
-        this.destination.code,
-        this.maxLayovers,
-        10,
-      );
-      this.drawConnections();
-    } catch (e) {
-      this.error = 'Could not reach the connections API.';
+    if (this.origin && this.destination) {
+      this.mode = 'connections';
+      this.searched = true;
+      this.loading = true;
+      try {
+        this.connections = await this.connSvc.getConnections(
+          this.origin.code,
+          this.destination.code,
+          this.maxLayovers,
+          10,
+        );
+        this.drawConnections();
+      } catch (e) {
+        this.error = 'Could not reach the connections API.';
+        this.connections = [];
+        this.clearRoute();
+        console.warn('connections fetch failed', e);
+      } finally {
+        this.loading = false;
+      }
+    } else if (this.origin) {
+      this.mode = 'direct';
+      this.searched = true;
+      this.loading = true;
+      try {
+        this.directs = await this.connSvc.getDirectFlights(this.origin.code);
+        this.drawDirects();
+      } catch (e) {
+        this.error = 'Could not reach the API.';
+        this.directs = [];
+        this.clearRoute();
+        console.warn('direct flights fetch failed', e);
+      } finally {
+        this.loading = false;
+      }
+    } else {
+      this.mode = 'none';
+      this.searched = false;
       this.connections = [];
+      this.directs = [];
       this.clearRoute();
-      console.warn('connections fetch failed', e);
-    } finally {
-      this.loading = false;
     }
   }
 
   selectRoute(plan: RoutePlan): void {
     this.selected = plan;
     this.drawRoute(plan);
+  }
+
+  /** One airport selected: draw every direct flight out, busier routes more solid. */
+  private drawDirects(): void {
+    if (!this.mapReady || !this.origin) return;
+    if (!this.directs.length) {
+      this.clearRoute();
+      return;
+    }
+    const o = this.origin;
+    const opacityOf = (f: number) => 0.3 + 0.65 * Math.min(1, f / 21); // ~3x daily saturates
+
+    const lineFeatures: GeoJSON.Feature[] = this.directs.map((d) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: greatCircle({ lat: o.lat, lon: o.lon }, { lat: d.destLat, lon: d.destLon }),
+      },
+      properties: { opacity: opacityOf(d.weeklyFreq) },
+    }));
+
+    const stops = new Map<string, { lon: number; lat: number; op: number }>();
+    stops.set(o.code, { lon: o.lon, lat: o.lat, op: 1 });
+    for (const d of this.directs) {
+      const op = Math.max(opacityOf(d.weeklyFreq), 0.6);
+      const ex = stops.get(d.destIata);
+      if (!ex || op > ex.op) stops.set(d.destIata, { lon: d.destLon, lat: d.destLat, op });
+    }
+
+    (this.map.getSource('route') as mapboxgl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: lineFeatures,
+    });
+    (this.map.getSource('route-stops') as mapboxgl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: [...stops.entries()].map(([code, v]) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [v.lon, v.lat] },
+        properties: { code, opacity: v.op },
+      })),
+    });
+
+    const bounds = new mapboxgl.LngLatBounds();
+    for (const f of lineFeatures)
+      for (const co of (f.geometry as GeoJSON.LineString).coordinates)
+        bounds.extend(co as [number, number]);
+    if (!bounds.isEmpty())
+      this.map.fitBounds(bounds, {
+        padding: { top: 90, bottom: 90, left: 430, right: 90 },
+        duration: 900,
+      });
   }
 
   /** Draw every returned connection, opacity scaled to its reasonability. */
@@ -401,6 +491,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.routes = [];
     this.selected = null;
     this.connections = [];
+    this.directs = [];
+    this.mode = 'none';
     this.error = '';
     this.searched = false;
     this.suggestions = [];

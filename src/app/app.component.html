@@ -92,37 +92,62 @@
     <p class="hint">Tip: you can also click airports on the map to set From / To.</p>
   </div>
 
-  <!-- Connections (ranked by reasonability; opacity on the map = reasonability) -->
+  <!-- Results: one airport -> direct flights, two airports -> ranked connections -->
   <div class="results" *ngIf="searched">
-    <div class="results__head" *ngIf="connections.length">
-      {{ connections.length }} connection<span *ngIf="connections.length !== 1">s</span> ·
-      opacity = reasonability
-    </div>
-    <p class="empty" *ngIf="loading">Finding connections…</p>
+    <p class="empty" *ngIf="loading">Loading…</p>
     <p class="empty" *ngIf="error">{{ error }}</p>
-    <p class="empty" *ngIf="!loading && !error && !connections.length">
-      No connections within {{ maxLayovers }} stop<span *ngIf="maxLayovers !== 1">s</span>.
-    </p>
 
-    <ul class="route-list">
-      <li
-        *ngFor="let c of connections; let i = index"
-        class="route-card"
-        [class.active]="i === 0"
-      >
-        <div class="route-card__top">
-          <span class="path">{{ connPath(c) }}</span>
-          <span class="badge">{{ c.stops }} stop{{ c.stops === 1 ? '' : 's' }}</span>
-        </div>
-        <div class="route-card__stats">
-          <span><strong>{{ c.totalDistanceKm | number }}</strong> km</span>
-          <span *ngIf="c.legs.length">{{ c.legs[0].airline }}<span *ngIf="c.stops"> +{{ c.stops }}</span></span>
-          <span>×{{ c.detourRatio | number: '1.1-1' }} detour</span>
-        </div>
-        <div class="reason" [title]="'reasonability ' + (c.reasonability | number: '1.2-2')">
-          <span class="reason__bar" [style.width.%]="c.reasonability * 100"></span>
-        </div>
-      </li>
-    </ul>
+    <!-- One airport selected: direct flights out -->
+    <ng-container *ngIf="mode === 'direct' && !loading && !error">
+      <div class="results__head" *ngIf="directs.length">
+        {{ directs.length }} direct destination<span *ngIf="directs.length !== 1">s</span> from
+        {{ origin?.code }}
+      </div>
+      <p class="empty" *ngIf="!directs.length">No direct flights observed from {{ origin?.code }}.</p>
+      <ul class="route-list">
+        <li *ngFor="let d of directs" class="route-card">
+          <div class="route-card__top">
+            <span class="path">{{ origin?.code }} → {{ d.destIata }}</span>
+            <span class="badge">direct</span>
+          </div>
+          <div class="route-card__stats">
+            <span>{{ d.destCity }}</span>
+            <span *ngIf="d.airline">{{ d.airline }}</span>
+            <span><strong>{{ d.weeklyFreq | number: '1.0-0' }}</strong>/wk</span>
+          </div>
+        </li>
+      </ul>
+    </ng-container>
+
+    <!-- Two airports selected: ranked connections (opacity on the map = reasonability) -->
+    <ng-container *ngIf="mode === 'connections' && !loading && !error">
+      <div class="results__head" *ngIf="connections.length">
+        {{ connections.length }} connection<span *ngIf="connections.length !== 1">s</span> ·
+        opacity = reasonability
+      </div>
+      <p class="empty" *ngIf="!connections.length">
+        No connections within {{ maxLayovers }} stop<span *ngIf="maxLayovers !== 1">s</span>.
+      </p>
+      <ul class="route-list">
+        <li
+          *ngFor="let c of connections; let i = index"
+          class="route-card"
+          [class.active]="i === 0"
+        >
+          <div class="route-card__top">
+            <span class="path">{{ connPath(c) }}</span>
+            <span class="badge">{{ c.stops }} stop{{ c.stops === 1 ? '' : 's' }}</span>
+          </div>
+          <div class="route-card__stats">
+            <span><strong>{{ c.totalDistanceKm | number }}</strong> km</span>
+            <span *ngIf="c.legs.length">{{ c.legs[0].airline }}<span *ngIf="c.stops"> +{{ c.stops }}</span></span>
+            <span>×{{ c.detourRatio | number: '1.1-1' }} detour</span>
+          </div>
+          <div class="reason" [title]="'reasonability ' + (c.reasonability | number: '1.2-2')">
+            <span class="reason__bar" [style.width.%]="c.reasonability * 100"></span>
+          </div>
+        </li>
+      </ul>
+    </ng-container>
   </div>
 </section>
