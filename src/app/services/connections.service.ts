@@ -26,6 +26,10 @@ export interface ApiConnection {
   detourRatio: number;
   reasonability: number; // 0..1
   legs: ApiConnectionLeg[];
+  // runtime display (assigned when drawing)
+  color?: string;
+  opacity?: number;
+  chosen?: boolean;
 }
 
 export interface DirectFlight {

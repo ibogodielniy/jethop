@@ -331,6 +331,21 @@ button.ghost {
   }
 }
 
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.badge.best {
+  color: #1a1206;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
 .reason {
   margin-top: 8px;
   height: 4px;

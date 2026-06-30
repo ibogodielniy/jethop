@@ -178,9 +178,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       source: 'route',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': '#fb8500',
-        'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1.8, 6, 3.5],
-        // opacity carries reasonability: most reasonable solid, least transparent
+        // per-connection colour (chosen = orange, alternatives = palette)
+        'line-color': ['coalesce', ['get', 'color'], '#fb8500'],
+        // chosen route drawn thicker via widthMul
+        'line-width': [
+          '*',
+          ['interpolate', ['linear'], ['zoom'], 1, 1.8, 6, 3.5],
+          ['coalesce', ['get', 'widthMul'], 1],
+        ],
+        // opacity carries score: chosen solid, alternatives fade as score drops
         'line-opacity': ['coalesce', ['get', 'opacity'], 0.95],
       },
     });
@@ -382,7 +388,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       });
   }
 
-  /** Draw every returned connection, opacity scaled to its reasonability. */
+  // Distinct "chosen" (best) colour + a palette for the alternatives.
+  private static readonly CHOSEN_COLOR = '#fb8500';
+  private static readonly ALT_COLORS = ['#3b82f6', '#8b5cf6', '#14b8a6', '#ec4899', '#f59e0b', '#22c55e'];
+
+  /**
+   * Two airports: the best-scored connection is the distinct "chosen" route
+   * (solid orange, thicker, on top); the other options each get their own
+   * colour and fade out as their reasonability drops. Only the first and last
+   * airports are marked (intermediate connection points are not).
+   */
   private drawConnections(): void {
     if (!this.mapReady) return;
     if (!this.connections.length) {
@@ -390,19 +405,21 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const rs = this.connections.map((c) => c.reasonability);
-    const min = Math.min(...rs);
-    const max = Math.max(...rs);
-    const opacityOf = (r: number) => (max > min ? 0.18 + 0.77 * ((r - min) / (max - min)) : 0.95);
+    const ranked = this.connections; // API returns them best-first
+    const maxR = ranked[0]?.reasonability || 1;
+    ranked.forEach((c, i) => {
+      c.chosen = i === 0;
+      c.color = i === 0
+        ? AppComponent.CHOSEN_COLOR
+        : AppComponent.ALT_COLORS[(i - 1) % AppComponent.ALT_COLORS.length];
+      // chosen solid; others get more transparent as the score decreases
+      c.opacity = i === 0 ? 1 : 0.2 + 0.6 * (maxR > 0 ? c.reasonability / maxR : 1);
+    });
 
-    // Ascending reasonability so the most reasonable (solid) renders on top.
-    const sorted = [...this.connections].sort((a, b) => a.reasonability - b.reasonability);
-
+    // worst first so the chosen route renders on top
+    const draw = [...ranked].reverse();
     const lineFeatures: GeoJSON.Feature[] = [];
-    const stops = new Map<string, { lon: number; lat: number; op: number }>();
-
-    for (const c of sorted) {
-      const op = opacityOf(c.reasonability);
+    for (const c of draw) {
       for (const leg of c.legs) {
         lineFeatures.push({
           type: 'Feature',
@@ -413,17 +430,21 @@ export class AppComponent implements AfterViewInit, OnDestroy {
               { lat: leg.toLat, lon: leg.toLon },
             ),
           },
-          properties: { opacity: op },
+          properties: { color: c.color, opacity: c.opacity, widthMul: c.chosen ? 1.8 : 1 },
         });
-        for (const p of [
-          { code: leg.fromIata, lat: leg.fromLat, lon: leg.fromLon },
-          { code: leg.toIata, lat: leg.toLat, lon: leg.toLon },
-        ]) {
-          const ex = stops.get(p.code);
-          if (!ex || op > ex.op) stops.set(p.code, { lon: p.lon, lat: p.lat, op });
-        }
       }
     }
+
+    // Endpoints only: first (origin) and last (destination).
+    const endpoints: GeoJSON.Feature[] = [];
+    const mark = (code: string, lon: number, lat: number) =>
+      endpoints.push({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [lon, lat] },
+        properties: { code, opacity: 1 },
+      });
+    if (this.origin) mark(this.origin.code, this.origin.lon, this.origin.lat);
+    if (this.destination) mark(this.destination.code, this.destination.lon, this.destination.lat);
 
     (this.map.getSource('route') as mapboxgl.GeoJSONSource).setData({
       type: 'FeatureCollection',
@@ -431,11 +452,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
     (this.map.getSource('route-stops') as mapboxgl.GeoJSONSource).setData({
       type: 'FeatureCollection',
-      features: [...stops.entries()].map(([code, v]) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: [v.lon, v.lat] },
-        properties: { code, opacity: Math.max(v.op, 0.6) },
-      })),
+      features: endpoints,
     });
 
     const bounds = new mapboxgl.LngLatBounds();

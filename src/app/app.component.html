@@ -135,8 +135,12 @@
           [class.active]="i === 0"
         >
           <div class="route-card__top">
-            <span class="path">{{ connPath(c) }}</span>
-            <span class="badge">{{ c.stops }} stop{{ c.stops === 1 ? '' : 's' }}</span>
+            <span class="path">
+              <span class="swatch" [style.background]="c.color"></span>{{ connPath(c) }}
+            </span>
+            <span class="badge" [class.best]="i === 0">
+              {{ i === 0 ? 'best' : (c.stops + ' stop' + (c.stops === 1 ? '' : 's')) }}
+            </span>
           </div>
           <div class="route-card__stats">
             <span><strong>{{ c.totalDistanceKm | number }}</strong> km</span>
