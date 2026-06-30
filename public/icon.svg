@@ -1,0 +1,11 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JetHop">
+  <rect width="64" height="64" rx="14" fill="#0b1626"/>
+  <!-- faint globe -->
+  <circle cx="32" cy="33" r="19" stroke="#3b82f6" stroke-opacity="0.25" stroke-width="2"/>
+  <!-- great-circle hop trail -->
+  <path d="M14 49C24 26 36 22 45 28" stroke="#fb8500" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="2.6 4.2"/>
+  <!-- origin -->
+  <circle cx="14" cy="49" r="3.4" fill="#ffffff"/>
+  <!-- jet -->
+  <polygon points="52,15 44,37 39,28 30,24" fill="#ffffff"/>
+</svg>

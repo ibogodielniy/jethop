@@ -67,6 +67,10 @@
 }
 
 .panel__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
   h1 {
     margin: 0;
     font-size: 22px;
@@ -77,6 +81,11 @@
     color: var(--muted);
     font-size: 13px;
   }
+}
+.brand-mark {
+  flex: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .legend {
