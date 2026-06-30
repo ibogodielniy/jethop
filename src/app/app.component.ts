@@ -9,10 +9,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import mapboxgl from 'mapbox-gl';
 import { environment } from '../environments/environment';
-import { AIRPORTS } from './data/airports';
 import { Airport, RoutePlan } from './models';
-import { RouteEngineService } from './services/route-engine.service';
 import { ConnectionsService, ApiConnection } from './services/connections.service';
+import { AirportsService } from './services/airports.service';
 import { greatCircle } from './services/geo';
 
 type Field = 'origin' | 'destination';
@@ -42,6 +41,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   suggestions: Airport[] = [];
   activeField: Field | null = null;
 
+  // served-airport lookup (route_airports), fetched from the API on load
+  airports: Airport[] = [];
+
   // results state
   routes: RoutePlan[] = [];
   selected: RoutePlan | null = null;
@@ -53,8 +55,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   error = '';
 
   constructor(
-    private engine: RouteEngineService,
     private connSvc: ConnectionsService,
+    private airportsSvc: AirportsService,
   ) {}
 
   // ---- Map lifecycle ----------------------------------------------------
@@ -82,6 +84,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.addAirportLayers();
       this.addRouteLayers();
       this.mapReady = true;
+      this.loadAirports();
     });
   }
 
@@ -95,18 +98,30 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.map.setProjection(this.isGlobe ? 'globe' : 'mercator');
   }
 
-  private addAirportLayers(): void {
-    this.map.addSource('airports', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: AIRPORTS.map((a) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [a.lon, a.lat] },
-          properties: { code: a.code, city: a.city },
-        })),
-      },
+  /** Fetch the served-airport lookup and render every airport on the map. */
+  private async loadAirports(): Promise<void> {
+    try {
+      this.airports = await this.airportsSvc.getAll();
+      this.setAirportData();
+    } catch (e) {
+      console.warn('airport lookup failed', e);
+    }
+  }
+
+  private setAirportData(): void {
+    const src = this.map.getSource('airports') as mapboxgl.GeoJSONSource | undefined;
+    src?.setData({
+      type: 'FeatureCollection',
+      features: this.airports.map((a) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [a.lon, a.lat] },
+        properties: { code: a.code, city: a.city },
+      })),
     });
+  }
+
+  private addAirportLayers(): void {
+    this.map.addSource('airports', { type: 'geojson', data: emptyFC() });
     this.map.addLayer({
       id: 'airport-dots',
       type: 'circle',
@@ -141,7 +156,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.map.on('mouseleave', 'airport-dots', () => (this.map.getCanvas().style.cursor = ''));
     this.map.on('click', 'airport-dots', (e) => {
       const code = (e.features?.[0]?.properties as { code?: string } | undefined)?.code;
-      const airport = AIRPORTS.find((a) => a.code === code);
+      const airport = this.airports.find((a) => a.code === code);
       if (airport) this.pickFromMap(airport);
     });
   }
@@ -200,12 +215,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.suggestions = [];
       return;
     }
-    this.suggestions = AIRPORTS.filter(
-      (a) =>
-        a.code.toLowerCase().includes(q) ||
-        a.name.toLowerCase().includes(q) ||
-        a.city.toLowerCase().includes(q),
-    ).slice(0, 7);
+    this.suggestions = this.airports
+      .filter(
+        (a) =>
+          a.code.toLowerCase().includes(q) ||
+          a.name.toLowerCase().includes(q) ||
+          a.city.toLowerCase().includes(q),
+      )
+      .slice(0, 7);
   }
 
   selectSuggestion(a: Airport): void {

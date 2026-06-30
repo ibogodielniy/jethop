@@ -40,7 +40,7 @@ const QUERY = `query Conn($from:String!,$to:String!,$maxStops:Int!,$limit:Int!){
 @Injectable({ providedIn: 'root' })
 export class ConnectionsService {
   async getConnections(from: string, to: string, maxStops = 2, limit = 10): Promise<ApiConnection[]> {
-    const res = await fetch(environment.apiUrl, {
+    const res = await fetch(`${environment.apiBase}/graphql`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: QUERY, variables: { from, to, maxStops, limit } }),
