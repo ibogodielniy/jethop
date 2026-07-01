@@ -8,10 +8,12 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = join(root, 'public');
-const svg = readFileSync(join(pub, 'icon.svg'));
+// Favicon variant (thicker strokes for small sizes). White ground so the dark
+// glyph stays visible on dark browser tabs.
+const svg = readFileSync(join(pub, 'favicon.svg'));
 
 const png = (size) =>
-  new Resvg(svg, { fitTo: { mode: 'width', value: size }, background: 'rgba(0,0,0,0)' })
+  new Resvg(svg, { fitTo: { mode: 'width', value: size }, background: '#ffffff' })
     .render()
     .asPng();
 

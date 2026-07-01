@@ -1,12 +1,12 @@
-<svg width="232" height="56" viewBox="0 0 232 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JetHop">
+<svg width="240" height="64" viewBox="0 0 240 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JetHop">
   <!-- mark -->
-  <rect x="2" y="2" width="52" height="52" rx="13" fill="#0b1626"/>
-  <circle cx="28" cy="27" r="15.5" stroke="#3b82f6" stroke-opacity="0.28" stroke-width="1.8"/>
-  <path d="M11 41C19 22 30 19 38 24" stroke="#fb8500" stroke-width="2.8" stroke-linecap="round" stroke-dasharray="2.2 3.6"/>
-  <circle cx="11" cy="41" r="2.8" fill="#ffffff"/>
-  <polygon points="44,12 37,31 33,24 25,20" fill="#ffffff"/>
+  <g transform="translate(6 7) scale(0.5)">
+    <polygon points="62,10 80,34 62,27 44,34" fill="#1f4d49"></polygon>
+    <path d="M62 30 L62 60 Q62 79 43 79 Q31 79 28 67" fill="none" stroke="#2c3a52" stroke-width="10" stroke-linecap="round"></path>
+    <circle cx="28" cy="67" r="8" fill="#2c3a52"></circle>
+  </g>
   <!-- wordmark (for light backgrounds) -->
-  <text x="70" y="36" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="27" font-weight="800" letter-spacing="0.3">
-    <tspan fill="#0b1626">Jet</tspan><tspan fill="#fb8500">Hop</tspan>
+  <text x="66" y="41" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="0.3">
+    <tspan fill="#2c3a52">Jet</tspan><tspan fill="#1f4d49">Hop</tspan>
   </text>
 </svg>
